@@ -64,6 +64,7 @@ public class helperDb
             try
             {
                 cnn.Open();
+                t = cnn.BeginTransaction();
                 SqlCommand cmd = new SqlCommand(spText, cnn, t);
                 cmd.CommandType = CommandType.StoredProcedure;
 
