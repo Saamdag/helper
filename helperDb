@@ -1,0 +1,98 @@
+public class helperDb
+    {
+        private static helperDb instancia;
+        private static SqlConnection cnn;
+
+
+        private helperDb()
+        {
+            cnn = new SqlConnection(Properties.Resources.cnnString);
+        }
+
+        public static helperDb Instancia()
+        {
+            if(instancia == null)
+                instancia = new helperDb();
+            return instancia;
+        }
+
+
+        public DataTable consultaSp(string spText,List<SqlParameter> values)
+        {
+            DataTable dt = new DataTable();
+
+            cnn.Open();
+            SqlCommand cmd = new SqlCommand(spText,cnn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            if(values != null)
+            {
+                foreach (SqlParameter param in values)
+                {
+                    cmd.Parameters.AddWithValue(param.ParameterName,param.Value);
+                }
+            }
+            dt.Load(cmd.ExecuteReader());
+
+            cnn.Close();
+            return dt;
+        }
+
+        public int consultaEscalar(string spText,string pOutNombre)
+        {
+            cnn.Open();
+            SqlParameter param = new SqlParameter();
+            param.ParameterName = pOutNombre;
+            param.DbType = DbType.Int32;
+            param.Direction = ParameterDirection.Output;
+
+
+            SqlCommand cmd = new SqlCommand(spText, cnn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(param);
+
+            cmd.ExecuteNonQuery();
+            cnn.Close();
+
+            return (int)param.Value;
+        }
+
+        public bool ejecutarSql(string spText,List<SqlParameter> values)
+        {
+            bool ok = true;
+            SqlTransaction t = null;
+
+            try
+            {
+                cnn.Open();
+                SqlCommand cmd = new SqlCommand(spText, cnn, t);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                if(values != null)
+                {
+                    foreach (SqlParameter param in values)
+                    {
+                        cmd.Parameters.AddWithValue(param.ParameterName, param.Value);
+                    }
+                }
+                cmd.ExecuteNonQuery();
+                t.Commit();
+            }
+            catch (Exception)
+            {
+                if(t != null)
+                {
+                    ok = false;
+                    t.Rollback();
+
+                }
+
+            }
+            finally
+            {
+                if (cnn != null && cnn.State == ConnectionState.Open)
+                    cnn.Close();
+            }
+            return ok;
+        }
+
+    }
